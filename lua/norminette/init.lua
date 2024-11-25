@@ -154,6 +154,7 @@ local function toggle_norminette()
 	if M.toggle_state then
 		setup_autocmds_and_run(bufnr)
 		print("NorminetteAutoCheck enable")
+		run_norminette_check(bufnr, M.namespace)
 	else
 		clear_autocmds_and_messages(bufnr)
 		print("NorminetteAutoCheck disable")
@@ -220,23 +221,24 @@ function M.setup(opts)
 		},
 	}, M.namespace)
 
-	vim.api.nvim_create_autocmd("BufEnter", {
+	vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI", "BufEnter", "BufWritePost" }, {
+		group = vim.api.nvim_create_augroup("NorminetteInitialUpdate", { clear = false }),
 		pattern = { "*.c", "*.h" },
 		callback = function()
 			if M.toggle_state then
-				M.run_norminette()
+				local bufnr = vim.fn.bufnr(vim.fn.bufname())
+				run_norminette_check(bufnr, M.namespace)
 			end
 		end,
-		group = vim.api.nvim_create_augroup("NorminetteInitialUpdate", { clear = true }),
 	})
 	vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI", "BufEnter", "BufWritePost" }, {
+		group = vim.api.nvim_create_augroup("NorminetteInitialUpdate", { clear = false }),
 		pattern = { "*.c", "*.h" },
 		callback = function(ev)
 			if M.show_size then
 				update_function_sizes(ev.buf)
 			end
 		end,
-		group = vim.api.nvim_create_augroup("NorminetteInitialUpdate", { clear = true }),
 	})
 end
 
