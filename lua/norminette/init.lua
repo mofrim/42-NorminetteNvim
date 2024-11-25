@@ -52,12 +52,12 @@ local function run_norminette_check(bufnr, namespace)
 		local output = vim.fn.system("norminette " .. vim.fn.shellescape(filename))
 		return output
 	end, function(output)
-		local diagnostics = parse_norminette_output(output)
-		vim.schedule(function()
-			vim.diagnostic.reset(namespace, bufnr)
-			vim.diagnostic.set(namespace, bufnr, diagnostics)
+			local diagnostics = parse_norminette_output(output)
+			vim.schedule(function()
+				vim.diagnostic.reset(namespace, bufnr)
+				vim.diagnostic.set(namespace, bufnr, diagnostics)
+			end)
 		end)
-	end)
 end
 
 local function update_status()
@@ -154,6 +154,7 @@ local function toggle_norminette()
 	if M.toggle_state then
 		setup_autocmds_and_run(bufnr)
 		print("NorminetteAutoCheck enable")
+		run_norminette_check(bufnr, M.namespace)
 	else
 		clear_autocmds_and_messages(bufnr)
 		print("NorminetteAutoCheck disable")
@@ -224,7 +225,7 @@ function M.setup(opts)
 		pattern = { "*.c", "*.h" },
 		callback = function()
 			if M.toggle_state then
-				M.run_norminette()
+				run_norminette_check()
 			end
 		end,
 		group = vim.api.nvim_create_augroup("NorminetteInitialUpdate", { clear = true }),
