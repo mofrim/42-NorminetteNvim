@@ -111,7 +111,8 @@ local function update_function_sizes(bufnr)
 end
 
 local function setup_autocmds_and_run(bufnr)
-	vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI", "BufEnter", "BufWritePost" }, {
+	-- vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI", "BufEnter", "BufWritePost" }, {
+	vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost" }, {
 		pattern = { "*.c", "*.h" },
 		callback = function()
 			run_norminette_check(bufnr, M.namespace)
@@ -123,7 +124,8 @@ end
 local function setup_size_autocmd(bufnr)
 	update_function_sizes(bufnr)
 	run_norminette_check(bufnr, M.namespace)
-	vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI", "BufEnter", "BufWritePost" }, {
+	-- vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI", "BufEnter", "BufWritePost" }, {
+	vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost" }, {
 		pattern = { "*.c", ".h" },
 		callback = function()
 			update_function_sizes(bufnr)
@@ -221,7 +223,8 @@ function M.setup(opts)
 		},
 	}, M.namespace)
 
-	vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI", "BufEnter", "BufWritePost" }, {
+	-- vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI", "BufEnter", "BufWritePost" }, {
+	vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost" }, {
 		group = vim.api.nvim_create_augroup("NorminetteInitialUpdate", { clear = false }),
 		pattern = { "*.c", "*.h" },
 		callback = function()
@@ -231,7 +234,8 @@ function M.setup(opts)
 			end
 		end,
 	})
-	vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI", "BufEnter", "BufWritePost" }, {
+	-- vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI", "BufEnter", "BufWritePost" }, {
+	vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost" }, {
 		group = vim.api.nvim_create_augroup("NorminetteInitialUpdate", { clear = false }),
 		pattern = { "*.c", "*.h" },
 		callback = function(ev)
