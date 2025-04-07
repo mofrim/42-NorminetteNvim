@@ -5,6 +5,7 @@ M.version = "0.6"
 M.dependencies = { "nvim-lua/plenary.nvim", "echasnovski/mini.icons" }
 M.namespace = vim.api.nvim_create_namespace("norminette")
 M.toggle_state = false
+M.quickfix = false
 M.show_size = true
 
 local has_plenary, async = pcall(require, "plenary.async")
@@ -52,12 +53,12 @@ local function run_norminette_check(bufnr, namespace)
 		local output = vim.fn.system("norminette " .. vim.fn.shellescape(filename))
 		return output
 	end, function(output)
-		local diagnostics = parse_norminette_output(output)
-		vim.schedule(function()
-			vim.diagnostic.reset(namespace, bufnr)
-			vim.diagnostic.set(namespace, bufnr, diagnostics)
+			local diagnostics = parse_norminette_output(output)
+			vim.schedule(function()
+				vim.diagnostic.reset(namespace, bufnr)
+				vim.diagnostic.set(namespace, bufnr, diagnostics)
+			end)
 		end)
-	end)
 end
 
 local function update_status()
@@ -146,6 +147,20 @@ local function clear_function_sizes(bufnr)
 	vim.api.nvim_buf_clear_namespace(bufnr, M.namespace, 0, -1)
 end
 
+local function toggle_norminette_quick()
+	if not correct_filetype() then
+		print("Norminette only runs in .c or .h files")
+		return
+	end
+	local bufnr = vim.api.nvim_get_current_buf()
+	M.quickfix = not M.quickfix
+	if M.quickfix then
+		run_norminette_check(bufnr, M.namespace)
+		update_status()
+		vim.diagnostic.setqflist()
+	end
+end
+
 local function toggle_norminette()
 	if not correct_filetype() then
 		print("Norminette only runs in .c or .h files")
@@ -187,12 +202,15 @@ function M.setup(opts)
 		size_keybind = "<leader>ns",
 		diagnostic_color = "#00ff00",
 		show_size = true,
+		quickfix = true,
 	}
 	for key, value in pairs(default_opts) do
 		if opts[key] == nil then
 			opts[key] = value
 		end
 	end
+
+	M.quickfix = opts.quickfix
 
 	M.show_size = opts.show_size
 	if opts.norm_keybind then
@@ -205,6 +223,9 @@ function M.setup(opts)
 	vim.api.nvim_set_hl(0, "NorminetteDiagnostic", { fg = opts.diagnostic_color })
 	vim.api.nvim_create_user_command("NorminetteToggle", function()
 		toggle_norminette()
+	end, {})
+	vim.api.nvim_create_user_command("NorminetteQuickToggle", function()
+		toggle_norminette_quick()
 	end, {})
 	vim.api.nvim_create_user_command("NorminetteSizeToggle", function()
 		toggle_size()
@@ -230,7 +251,12 @@ function M.setup(opts)
 		callback = function()
 			if M.toggle_state then
 				local bufnr = vim.fn.bufnr(vim.fn.bufname())
-				run_norminette_check(bufnr, M.namespace)
+				if M.quickfix then
+					run_norminette_check(bufnr, M.namespace)
+					vim.diagnostic.setqflist()
+				else
+					run_norminette_check(bufnr, M.namespace)
+				end
 			end
 		end,
 	})
