@@ -161,6 +161,66 @@ local function toggle_norminette_quick()
 	end
 end
 
+
+local function update_quickfix(bufnr, namespace)
+	if vim.bo.modified and not vim.bo.readonly and vim.fn.expand("%") ~= "" and vim.bo.buftype == "" then
+		vim.api.nvim_command("silent update")
+	end
+	local filename = vim.api.nvim_buf_get_name(bufnr)
+	local output = vim.fn.system("norminette " .. vim.fn.shellescape(filename))
+	local diagnostics = parse_norminette_output(output)
+	if next(diagnostics) == nil then
+		print("🥳 normi is happy 🥳")
+	end
+	vim.diagnostic.reset(namespace, bufnr)
+	-- vim.diagnostic.reset()
+	-- vim.fn.setqflist({}, 'r')
+	vim.diagnostic.set(namespace, bufnr, diagnostics)
+	vim.diagnostic.setqflist({namespace = namespace, open = true, title = "normi"})
+end
+
+local function setup_bufferlocal_aucmd(bufnr, namespace)
+  local group = vim.api.nvim_create_augroup("NormiBufferLocalAutocmd" .. bufnr, { clear = true })
+  vim.api.nvim_create_autocmd({ "BufWritePost" }, {
+    group = group,
+    buffer = bufnr,
+    callback = function()
+			print("✨ Updating normi... ✨")
+			update_quickfix(bufnr, namespace)
+    end,
+  })
+
+	-- remove all autocmds for a buffer on Leave, Delete
+  -- vim.api.nvim_create_autocmd({"BufLeave", "BufDelete"}, {
+  vim.api.nvim_create_autocmd({"BufDelete"}, {
+    group = group,
+    buffer = bufnr,
+    callback = function()
+      vim.api.nvim_del_augroup_by_name("NormiBufferLocalAutocmd" .. bufnr)
+      -- print("Buffer-local autocommands cleared for buffer " .. bufnr)
+    end,
+  })
+end
+
+-- My normi oneshot user function.
+-- 
+-- Creates a new namespace for storing the buffer-local norminette diagnostics.
+local function oneshot()
+	if M.toggle_state then
+		return
+	end
+	if not correct_filetype() then
+		print("Norminette only runs in .c or .h files")
+		return
+	end
+	print("🔫 NorminetteOneshot 🔫")
+	local bufnr = vim.api.nvim_get_current_buf()
+	local namespace = vim.api.nvim_create_namespace("normi" .. bufnr)
+	setup_bufferlocal_aucmd(bufnr, namespace)
+	update_quickfix(bufnr, namespace)
+end
+
+
 local function toggle_norminette()
 	if not correct_filetype() then
 		print("Norminette only runs in .c or .h files")
@@ -226,6 +286,9 @@ function M.setup(opts)
 	end, {})
 	vim.api.nvim_create_user_command("NorminetteQuickToggle", function()
 		toggle_norminette_quick()
+	end, {})
+	vim.api.nvim_create_user_command("NorminetteOneshot", function()
+		oneshot()
 	end, {})
 	vim.api.nvim_create_user_command("NorminetteSizeToggle", function()
 		toggle_size()
